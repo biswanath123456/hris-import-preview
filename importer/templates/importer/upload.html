@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>HRIS Import Preview</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 20px;
+            line-height: 1.5;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            margin-bottom: 15px;
+        }
+
+        .upload-box {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 6px;
+        }
+
+        input[type="file"] {
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: 1px solid #333;
+            background: #333;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #555;
+        }
+
+        .section {
+            margin-top: 35px;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .summary-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+
+        .summary-card strong {
+            display: block;
+            font-size: 24px;
+            margin-top: 5px;
+        }
+
+        .error-message {
+            border: 1px solid #ddd;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background: #f5f5f5;
+        }
+
+        .cycle {
+            border: 1px solid #ddd;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        .success {
+            padding: 12px;
+            border: 1px solid #ddd;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+
+        @media (max-width: 800px) {
+            .summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 500px) {
+            .summary {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 14px;
+            }
+
+            .upload-box {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+
+
+<body>
+
+    <h1>HRIS Import Preview</h1>
+
+    <p>
+        Upload an employee CSV to validate the reporting structure
+        before importing.
+    </p>
+
+
+    <!-- =====================================================
+         Upload Form
+         ===================================================== -->
+
+    <div class="upload-box">
+
+        <form
+            method="post"
+            enctype="multipart/form-data"
+        >
+
+            {% csrf_token %}
+
+            <input
+                type="file"
+                name="file"
+                accept=".csv"
+                required
+            >
+
+            <button type="submit">
+                Preview Import
+            </button>
+
+        </form>
+
+    </div>
+
+
+    <!-- =====================================================
+         General Upload Error
+         ===================================================== -->
+
+    {% if error %}
+
+        <div class="error-message">
+
+            <strong>Error:</strong>
+
+            {{ error }}
+
+        </div>
+
+    {% endif %}
+
+
+    <!-- =====================================================
+         Import Result
+         ===================================================== -->
+
+    {% if result %}
+
+        <div class="section">
+
+            <h2>Import Status</h2>
+
+            {% if result.is_valid %}
+
+                <div class="success">
+                    Import is valid. No validation errors or reporting
+                    cycles were detected.
+                </div>
+
+            {% else %}
+
+                <div class="error-message">
+                    Import requires attention before it can be accepted.
+                </div>
+
+            {% endif %}
+
+        </div>
+        <!-- =================================================
+             Summary
+             ================================================= -->
+
+        <div class="section">
+
+            <h2>Summary</h2>
+
+            <div class="summary">
+
+                <div class="summary-card">
+
+                    Employees
+
+                    <strong>
+                        {{ result.total_employees }}
+                    </strong>
+
+                </div>
+
+
+                <div class="summary-card">
+
+                    Errors
+
+                    <strong>
+                        {{ result.error_count }}
+                    </strong>
+
+                </div>
+
+
+                <div class="summary-card">
+
+                    Cycles
+
+                    <strong>
+                        {{ result.cycles_count }}
+                    </strong>
+
+                </div>
+
+
+                <div class="summary-card">
+
+                    Root Employees
+
+                    <strong>
+                        {{ result.root_count }}
+                    </strong>
+
+                </div>
+
+
+                <div class="summary-card">
+
+                    Managers
+
+                    <strong>
+                        {{ result.manager_count }}
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             Validation Errors
+             ================================================= -->
+
+        <div class="section">
+
+            <h2>Validation Errors</h2>
+
+            {% if result.errors %}
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>Row</th>
+                            <th>Employee ID</th>
+                            <th>Field</th>
+                            <th>Message</th>
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for error in result.errors %}
+
+                            <tr>
+
+                                <td>
+                                    {{ error.row }}
+                                </td>
+
+
+                                <td>
+
+                                    {% if error.employee_id %}
+                                        {{ error.employee_id }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if error.field %}
+                                        {{ error.field }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+                                    {{ error.message }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            {% else %}
+
+                <div class="success">
+
+                    No validation errors found.
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- =================================================
+             Root Employees
+             ================================================= -->
+
+        <div class="section">
+
+            <h2>Root Employees</h2>
+
+            {% if result.roots %}
+
+                <ul>
+
+                    {% for employee_id in result.roots %}
+
+                        <li>
+                            {{ employee_id }}
+                        </li>
+
+                    {% endfor %}
+
+                </ul>
+
+            {% else %}
+
+                <p>
+                    No root employees found.
+                </p>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- =================================================
+             Managers
+             ================================================= -->
+
+        <div class="section">
+
+            <h2>Managers</h2>
+
+            {% if result.direct_reports %}
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>Manager</th>
+                            <th>Direct Reports</th>
+                            <th>Count</th>
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for manager_id, reports in result.direct_reports.items %}
+
+                            <tr>
+
+                                <td>
+                                    {{ manager_id }}
+                                </td>
+
+
+                                <td>
+                                    {{ reports|join:", " }}
+                                </td>
+
+
+                                <td>
+                                    {{ reports|length }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            {% else %}
+
+                <p>
+                    No manager relationships found.
+                </p>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- =================================================
+             Reporting Cycles
+             ================================================= -->
+
+        <div class="section">
+
+            <h2>Reporting Cycles</h2>
+
+            {% if result.cycles %}
+
+                {% for cycle in result.cycles %}
+
+                    <div class="cycle">
+
+                        <strong>
+                            Cycle {{ forloop.counter }}
+                        </strong>
+
+                        <p>
+                            {{ cycle|join:" → " }}
+                        </p>
+
+                    </div>
+
+                {% endfor %}
+
+            {% else %}
+
+                <div class="success">
+
+                    No reporting cycles detected.
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+    {% endif %}
+
+
+</body>
+
+</html>

@@ -1,0 +1,5 @@
+employee_id,employee_name,email,department,manager_id,manager_email
+E001,,robert@example.com,Executive,,
+E002,Alice,alice@example.com,,E001,
+E003,Bob,,Engineering,E001,
+E004,Charlie,charlie@example.com,Engineering,,
